@@ -19,18 +19,18 @@ const pool = new Pool({
 
 const getUserWithEmail = function(email) {
   return pool
-  .query(`SELECT * FROM users WHERE email = $1`, [email])
-  .then((result) => {
-    if(result.rows) { // checks if valid result (ie. user) is found in db
-      return result.rows[0]; // returns first result from array
-    } else { // if no valid result is found, returns null
-      return null;
-    }
-  })
-  .catch((err) => {
-    console.log(err.message);
-  });
-}
+    .query(`SELECT * FROM users WHERE email = $1`, [email])
+    .then((result) => {
+      if (result.rows) { // checks if valid result (ie. user) is found in db
+        return result.rows[0]; // returns first result from array
+      } else { // if no valid result is found, returns null
+        return null;
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 
 exports.getUserWithEmail = getUserWithEmail;
 
@@ -41,18 +41,18 @@ exports.getUserWithEmail = getUserWithEmail;
  */
 const getUserWithId = function(id) {
   return pool
-  .query(`SELECT * FROM users WHERE id = $1`, [id])
-  .then((result) => {
-    if(result.rows) { // checks if valid result (ie. user) is found in db
-      return result.rows[0]; // returns first result from array
-    } else { // if no valid result is found, returns null
-      return null;
-    }
-  })
-  .catch((err) => {
-    console.log(err.message);
-  });
-}
+    .query(`SELECT * FROM users WHERE id = $1`, [id])
+    .then((result) => {
+      if (result.rows) { // checks if valid result (ie. user) is found in db
+        return result.rows[0]; // returns first result from array
+      } else { // if no valid result is found, returns null
+        return null;
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 exports.getUserWithId = getUserWithId;
 
 
@@ -64,18 +64,18 @@ exports.getUserWithId = getUserWithId;
 
 const addUser =  function(user) {
   return pool
-  .query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *;`, [user.name, user.email, user.password])
-  .then((result) => {
-    if(result.rows) { // checks if valid result (ie. user) is found in db
-      return result.rows[0]; // returns first result from array
-    } else { // if no valid result is found, returns null
-      return null;
-    }
-  })
-  .catch((err) => {
-    console.log(err.message);
-  });
-}
+    .query(`INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *;`, [user.name, user.email, user.password])
+    .then((result) => {
+      if (result.rows) { // checks if valid result (ie. user) is found in db
+        return result.rows[0]; // returns first result from array
+      } else { // if no valid result is found, returns null
+        return null;
+      }
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 
 exports.addUser = addUser;
 
@@ -105,14 +105,14 @@ const getAllReservations = function(guest_id, limit = 10) {
   const values = [guest_id, limit];
 
   return pool
-  .query(queryString, values)
-  .then((result) => {
-    return result.rows; // returns first result from array
-  })
-  .catch((err) => {
-    console.log(err.message);
-  });
-}
+    .query(queryString, values)
+    .then((result) => {
+      return result.rows; // returns first result from array
+    })
+    .catch((err) => {
+      console.log(err.message);
+    });
+};
 
 exports.getAllReservations = getAllReservations;
 
@@ -133,15 +133,64 @@ exports.getAllReservations = getAllReservations;
 // }
 
 const getAllProperties = (options, limit = 10) => {
-  return pool
-  .query(`SELECT * FROM properties LIMIT $1`, [limit])
-  .then((result) => {
-    console.log(result.rows);
-    return result.rows;
-  })
-  .catch((err) => {
-    console.log(err.message);
-  });
+  // define queryParams that may be passed into query
+  const queryParams = [];
+  // the starter code that will be modified/ appended to based on filters used
+  let queryString = `
+    SELECT properties.*, avg(property_reviews.rating) as average_rating
+    FROM properties
+    JOIN property_reviews ON properties.id = property_id
+   `;
+ 
+  // query modification to search by city
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `WHERE city LIKE $${queryParams.length}`;
+  }
+ 
+  // query modification to search by OwnerID
+  if (options.owner_id) {
+    queryParams.push(options.owner_id);
+    if (queryParams.length === 1) { //checks if more than 1 WHERE clauses is needed, to see if AND is required
+      queryString += `WHERE owner_id = $${queryParams.length} `;
+    } else {
+      queryString += `AND owner_id = $${queryParams.length} `;
+    }
+  }
+
+  // query modification to search by min and max price per night
+  if (options.minimum_price_per_night && options.maximum_price_per_night) {
+    queryParams.push(options.minimum_price_per_night * 100, options.maximum_price_per_night * 100); // *100 to convert from dollars to cents
+    if (queryParams.length === 2) { //checks if more than 1 WHERE clauses is needed, to see if AND is required
+      queryString += `WHERE cost_per_night >= $${queryParams.length - 1} AND cost_per_night <= $${queryParams.length} `;
+    } else {
+      queryString += `AND cost_per_night >= $${queryParams.length - 1} AND cost_per_night <= $${queryParams.length} `;
+    }
+  }
+
+  // query parameters that come after the WHERE clause
+  queryString += `
+  GROUP BY properties.id
+  `;
+   
+  // query modification to search by minimum star rating
+  if (options.minimum_rating) {
+    queryParams.push(options.minimum_rating);
+    queryString += `HAVING avg(property_reviews.rating) >= $${queryParams.length} `;
+  }
+  
+  // final part of the query that is to be added at the very end
+  queryParams.push(limit);
+  queryString += `
+   ORDER BY cost_per_night
+   LIMIT $${queryParams.length};
+   `;
+
+  // logs final query to confirm it was constructed properly
+  console.log(queryString, queryParams);
+ 
+  // returns the query that will be run by the application
+  return pool.query(queryString, queryParams).then((res) => res.rows);
 };
 
 exports.getAllProperties = getAllProperties;
@@ -156,5 +205,5 @@ const addProperty = function(property) {
   property.id = propertyId;
   properties[propertyId] = property;
   return Promise.resolve(property);
-}
+};
 exports.addProperty = addProperty;
