@@ -4,9 +4,9 @@ Lighthouse BnB is an app that will revolutionize the travel industry. It will al
 
 ## Final Product
 
-!["Screenshot of home page"](https://github.com/dazycki/tweeter/blob/master/docs/desktopView.png)
-!["Screenshot of search function"](https://github.com/dazycki/tweeter/blob/master/docs/mobileView.png)
-!["Screenshot of create new property function"](https://github.com/dazycki/tweeter/blob/master/docs/fromValidation.png)
+!["Screenshot of home page"](https://github.com/dazycki/LightBnB/blob/master/docs/home.png)
+!["Screenshot of search function"](https://github.com/dazycki/LightBnB/blob/master/docs/search.png)
+!["Screenshot of create new property function"](https://github.com/dazycki/LightBnB/blob/master/docs/create.png)
 
 ## Dependencies
 
