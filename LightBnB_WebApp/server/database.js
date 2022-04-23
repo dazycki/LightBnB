@@ -221,5 +221,5 @@ const addProperty = function(property) {
     .catch((err) => {
       console.log(err.message);
     });
-}
+};
 exports.addProperty = addProperty;
